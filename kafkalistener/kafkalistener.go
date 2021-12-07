@@ -17,14 +17,14 @@ import (
 )
 
 type KafkaConfig struct {
-	Enabled         bool     `yaml:"enabled"`
-	Version         string   `yaml:"version"`
-	ConsumeOnly     bool     `yaml:"consume_only"`
-	ConsumerGroupID string   `yaml:"consumer_group_id"`
-	FromOldest      bool     `yaml:"from_oldest"`
-	SchemaReg       string   `yaml:"schema_registration"`
-	Brokers         []string `yaml:"brokers"`
-	TLS             tlskit.TLS
+	Enabled         bool       `yaml:"enabled"`
+	Version         string     `yaml:"version"`
+	ConsumeOnly     bool       `yaml:"consume_only"`
+	ConsumerGroupID string     `yaml:"consumer_group_id"`
+	FromOldest      bool       `yaml:"from_oldest"`
+	SchemaReg       string     `yaml:"schema_registration"`
+	Brokers         []string   `yaml:"brokers"`
+	TLS             tlskit.TLS `yaml:"TLS"`
 }
 
 type MessageBroker struct {
