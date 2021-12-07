@@ -30,8 +30,8 @@ func ParseDate(datetxt *string) (*time.Time, error) {
 	return &dt, err
 }
 
-// Payload decodes a message payload into a struct.
-func Payload(topic *Topic, payload message.Payload, v interface{}) error {
+// DecodePayload decodes a message payload into a struct.
+func DecodePayload(topic *Topic, payload message.Payload, v interface{}) error {
 	if topic.Schema == nil {
 		return errNoSchemaProvided
 	}
