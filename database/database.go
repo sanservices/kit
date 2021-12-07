@@ -20,19 +20,21 @@ var (
 	ErrInvalidDBUser = errors.New("database user is missing")
 )
 
+// DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string
-	Host     string
-	Port     int
-	Name     string
-	User     string
-	Password string
+	Engine   string `yaml:"engine"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
 }
 
+// RedisConfig is the configuration for a redis database.
 type RedisConfig struct {
-	Addr     string
-	Password string
-	DB       int
+	Addr     string `yaml:"addr"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
 // CreateMySqlConnection creates a connection to a mysql database
