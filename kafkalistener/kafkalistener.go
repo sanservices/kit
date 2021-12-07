@@ -33,6 +33,7 @@ type MessageBroker struct {
 	subscriberConfig kafka.SubscriberConfig
 	registryClient   *registry.Client
 	logger           watermill.LoggerAdapter
+	router           *message.Router
 	canCreateSchema  bool
 }
 
