@@ -55,7 +55,6 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 
 	log.Println("Connecting to database...")
 	db, err = sqlx.ConnectContext(ctx, "mysql", connectionString)
-
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,6 @@ func CreateSqliteConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx
 	}
 
 	log.Println("Connected to database")
-
 	return db, nil
 }
 
@@ -87,8 +85,8 @@ func CreateSqliteConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx
 func CreateRedisConnection(ctx context.Context, config RedisConfig) (*redis.Client, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     config.Addr,
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Password: config.Password,
+		DB:       config.DB,
 	})
 
 	err := rdb.Ping(ctx).Err()

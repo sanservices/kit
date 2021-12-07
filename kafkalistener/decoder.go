@@ -15,6 +15,7 @@ var (
 
 const SimpleDateLayout string = "2006-01-02"
 
+// ParseDate parses a string into a time.Time object.
 func ParseDate(datetxt *string) (*time.Time, error) {
 
 	if datetxt == nil {
@@ -29,6 +30,7 @@ func ParseDate(datetxt *string) (*time.Time, error) {
 	return &dt, err
 }
 
+// DecodePayload decodes a message payload into a struct.
 func DecodePayload(topic *Topic, payload message.Payload, v interface{}) error {
 	if topic.Schema == nil {
 		return errNoSchemaProvided

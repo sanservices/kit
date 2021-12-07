@@ -16,14 +16,9 @@ type RouteHandler struct {
 	HandlerFunc message.NoPublishHandlerFunc
 }
 
-func StartListener(ctx context.Context, mb *MessageBroker, handlers []RouteHandler) error {
-	if !mb.enabled {
-		return nil
-	}
-
-	return mb.Listen(ctx, handlers)
-}
-
+// Listen starts the router and the message broker. This call is blocking while the router is running.
+//
+// To stop Listen() you should call Stop().
 func (mb *MessageBroker) Listen(ctx context.Context, handlers []RouteHandler) error {
 	config := message.RouterConfig{}
 	router, err := message.NewRouter(config, mb.logger)
@@ -56,9 +51,9 @@ func (mb *MessageBroker) Listen(ctx context.Context, handlers []RouteHandler) er
 	router.AddPlugin(plugin.SignalsHandler)
 	router.AddMiddleware(middleware.CorrelationID)
 	router.AddMiddleware(retryMidd)
+	mb.router = router
 
-	go router.Run(ctx)
-	return nil
+	return mb.router.Run(ctx)
 }
 
 // registerHandler sets the Schema and adds the handler to the router.
@@ -81,6 +76,15 @@ func (mb *MessageBroker) registerHandler(
 		subscriber,
 		handlerFunc,
 	)
+
+	return nil
+}
+
+// Stop gracefully closes the router with a timeout provided in the configuration.
+func (mb *MessageBroker) Stop() error {
+	if mb.router != nil {
+		return mb.router.Close()
+	}
 
 	return nil
 }
