@@ -3,6 +3,7 @@ package kafkalistener
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"os"
 	"time"
@@ -16,33 +17,8 @@ import (
 	tlskit "github.com/sanservices/kit/tls"
 )
 
-type KafkaConfig struct {
-	Enabled         bool       `yaml:"enabled"`
-	Version         string     `yaml:"version"`
-	ConsumeOnly     bool       `yaml:"consume_only"`
-	ConsumerGroupID string     `yaml:"consumer_group_id"`
-	FromOldest      bool       `yaml:"from_oldest"`
-	SchemaReg       string     `yaml:"schema_registration"`
-	Brokers         []string   `yaml:"brokers"`
-	TLS             tlskit.TLS `yaml:"TLS"`
-}
-
-type MessageBroker struct {
-	enabled          bool
-	publisher        *kafka.Publisher
-	subscriberConfig kafka.SubscriberConfig
-	registryClient   *registry.Client
-	logger           watermill.LoggerAdapter
-	router           *message.Router
-	canCreateSchema  bool
-}
-
-type Topic struct {
-	Name      string
-	Version   int
-	RawSchema string
-	Schema    avro.Schema
-}
+var ErrBrokerNotEnabled error = errors.New("message broker is not enabled")
+var ErrPublishOnConsumeOnly error = errors.New("message broker was set as a consume only")
 
 func New(
 	ctx context.Context,
@@ -86,12 +62,20 @@ func New(
 		NackResendSleep:       time.Second * 60,
 	}
 
+	routerConfig := message.RouterConfig{}
+	router, err := message.NewRouter(routerConfig, watermillLogger)
+	if err != nil {
+		log.Println("Error creating router: ", err)
+		return nil, err
+	}
+
 	return &MessageBroker{
 		enabled:          true,
 		subscriberConfig: subscriberConfig,
 		publisher:        publisher,
 		registryClient:   registryClient,
 		logger:           watermillLogger,
+		router:           router,
 	}, nil
 }
 
@@ -99,47 +83,47 @@ func New(
 //
 // if it doesn't exists tries to register the schema.
 func (mb *MessageBroker) SetSchema(topic *Topic) error {
+	if !mb.enabled {
+		return ErrBrokerNotEnabled
+	}
 
 	subject := topic.Name + "-value"
 	var err error
-	var schema avro.Schema
 	var schemaInfo registry.SchemaInfo
 	var schemaID int
 
-	if mb.canCreateSchema {
-		schemaID, schema, _ = mb.registryClient.IsRegistered(subject, topic.RawSchema)
-		if schemaID > 0 {
-			topic.Schema = schema
-			return nil
-		}
-
-		schemaInfo, err = mb.registryClient.GetLatestSchemaInfo(subject)
-		if err != nil || schemaInfo.Version < topic.Version {
-			_, schema, err = mb.registryClient.CreateSchema(subject, topic.RawSchema)
-			if err != nil {
-				log.Println("Error creating schema: ", err)
-				return err
-			}
-
-		} else {
-			schema = schemaInfo.Schema
-		}
-
-	} else {
-		schema, err = mb.registryClient.GetLatestSchema(subject)
-		if err != nil {
-			log.Println("Error getting schema from registry: ", err)
-			return err
-		}
+	// if the topic wont register the definition,
+	// just grab the schema from the registry.
+	if !topic.RegisterSchema {
+		topic.Schema, err = mb.registryClient.GetLatestSchema(subject)
+		return err
 	}
 
-	topic.Schema = schema
-	return nil
+	// return schema if it exists in the registry with the given avro definition.
+	schemaID, topic.Schema, _ = mb.registryClient.IsRegistered(subject, topic.RawSchema)
+	if schemaID > 0 {
+		return nil
+	}
+
+	// Get the most recent schema from the registry.
+	schemaInfo, err = mb.registryClient.GetLatestSchemaInfo(subject)
+	if err == nil && schemaInfo.Version >= 0 {
+		topic.Schema = schemaInfo.Schema
+		return nil
+	}
+
+	// Attempt to register the schema in the registry.
+	_, topic.Schema, err = mb.registryClient.CreateSchema(subject, topic.RawSchema)
+	return err
 }
 
 func (mb *MessageBroker) Publish(topic *Topic, data interface{}) error {
+	if !mb.enabled {
+		return ErrBrokerNotEnabled
+	}
+
 	if mb.publisher == nil {
-		return nil
+		return ErrPublishOnConsumeOnly
 	}
 
 	messageToSend, err := avro.Marshal(topic.Schema, data)

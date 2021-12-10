@@ -2,7 +2,6 @@ package kafkalistener
 
 import (
 	"context"
-	"time"
 
 	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
@@ -16,65 +15,57 @@ type RouteHandler struct {
 	HandlerFunc message.NoPublishHandlerFunc
 }
 
+// SetRetry attempts to set the retry policy for the router.
+func (mb *MessageBroker) SetRetry(retry *Retry) {
+	if mb.router == nil {
+		return
+	}
+
+	mb.router.AddMiddleware(retry.Middleware)
+}
+
 // Listen starts the router and the message broker. This call is blocking while the router is running.
 //
 // To stop Listen() you should call Stop().
 func (mb *MessageBroker) Listen(ctx context.Context, handlers []RouteHandler) error {
-	config := message.RouterConfig{}
-	router, err := message.NewRouter(config, mb.logger)
+	if !mb.enabled {
+		return ErrBrokerNotEnabled
+	}
+
+	sub, err := kafka.NewSubscriber(mb.subscriberConfig, mb.logger)
 	if err != nil {
 		return err
 	}
 
-	subscriber, err := kafka.NewSubscriber(mb.subscriberConfig, mb.logger)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range handlers {
-		err := mb.registerHandler(router, subscriber, r.Name, r.Topic, r.HandlerFunc)
+	for _, h := range handlers {
+		err := mb.registerHandler(h, sub)
 		if err != nil {
 			return err
 		}
 	}
 
-	retryMidd := Retry{
-		MaxRetries:         5,
-		InitialInterval:    time.Millisecond * 500,
-		Multiplier:         2.5,
-		MaxInterval:        time.Second * 5,
-		MaxElapsedTime:     time.Minute * 2,
-		AckAfterMaxRetries: true,
-		Logger:             mb.logger,
-	}.Middleware
-
-	router.AddPlugin(plugin.SignalsHandler)
-	router.AddMiddleware(middleware.CorrelationID)
-	router.AddMiddleware(retryMidd)
-	mb.router = router
+	mb.router.AddPlugin(plugin.SignalsHandler)
+	mb.router.AddMiddleware(middleware.CorrelationID)
 
 	return mb.router.Run(ctx)
 }
 
 // registerHandler sets the Schema and adds the handler to the router.
 func (mb *MessageBroker) registerHandler(
-	router *message.Router,
+	handler RouteHandler,
 	subscriber *kafka.Subscriber,
-	name string,
-	topic *Topic,
-	handlerFunc message.NoPublishHandlerFunc,
 ) error {
 
-	err := mb.SetSchema(topic)
+	err := mb.SetSchema(handler.Topic)
 	if err != nil {
 		return err
 	}
 
-	router.AddNoPublisherHandler(
-		name,
-		topic.Name,
+	mb.router.AddNoPublisherHandler(
+		handler.Name,
+		handler.Topic.Name,
 		subscriber,
-		handlerFunc,
+		handler.HandlerFunc,
 	)
 
 	return nil

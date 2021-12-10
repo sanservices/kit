@@ -28,6 +28,19 @@ var topicTest = &kafkalistener.Topic{
 	Name: "test",
 }
 
+// handlerForTest Handles incoming messages for topic "test"
+func handlerForTest(msg *message.Message) error {
+	data := TestPayload{}
+
+	err := kafkalistener.DecodePayload(topicTest, msg.Payload, &data)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Received message: %+v", data)
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
 
@@ -63,23 +76,21 @@ func main() {
 		},
 	}
 
+	// Set the retry policy
+	mb.SetRetry(&kafkalistener.Retry{
+		MaxRetries:         5,
+		InitialInterval:    time.Millisecond * 500,
+		Multiplier:         2.5,
+		MaxInterval:        time.Second * 5,
+		MaxElapsedTime:     time.Minute * 2,
+		AckAfterMaxRetries: true,
+		Logger:             mb.logger,
+	})
+
     // Start listening to kafka
-	err = kafkalistener.StartListener(ctx, messageBroker, routeHandlers)
+	err = mb.Listen(ctx, routeHandlers)
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-// handlerForTest Handles incoming messages for topic "test"
-func handlerForTest(msg *message.Message) error {
-	data := TestPayload{}
-
-	err := kafkalistener.DecodePayload(topicTest, msg.Payload, &data)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Received message: %+v", data)
-	return nil
 }
 ```
