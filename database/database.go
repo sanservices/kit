@@ -30,11 +30,19 @@ type DatabaseConfig struct {
 	Password string `yaml:"password"`
 }
 
+type SentielConfig struct {
+	Enabled    bool     `yaml:"enabled"`
+	Addresses  []string `yaml:"addresses"`
+	Password   string   `yaml:"password"`
+	MasterName string   `yaml:"master_name"`
+}
+
 // RedisConfig is the configuration for a redis database.
 type RedisConfig struct {
-	Addr     string `yaml:"addr"`
-	Password string `yaml:"password"`
-	DB       int    `yaml:"db"`
+	Addr     string        `yaml:"addr"`
+	Password string        `yaml:"password"`
+	DB       int           `yaml:"db"`
+	Sentinel SentielConfig `yaml:"Sentinel"`
 }
 
 // CreateMySqlConnection creates a connection to a mysql database
@@ -85,11 +93,23 @@ func CreateSqliteConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx
 
 // CreateRedisConnection creates a connection to a redis database
 func CreateRedisConnection(ctx context.Context, config RedisConfig) (*redis.Client, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr:     config.Addr,
-		Password: config.Password,
-		DB:       config.DB,
-	})
+	var rdb *redis.Client
+
+	if config.Sentinel.Enabled {
+		rdb = redis.NewFailoverClient(&redis.FailoverOptions{
+			SentinelAddrs:    config.Sentinel.Addresses,
+			Password:         config.Password,
+			SentinelPassword: config.Sentinel.Password,
+			DB:               config.DB,
+			MasterName:       config.Sentinel.MasterName,
+		})
+	} else {
+		rdb = redis.NewClient(&redis.Options{
+			Addr:     config.Addr,
+			Password: config.Password,
+			DB:       config.DB,
+		})
+	}
 
 	err := rdb.Ping(ctx).Err()
 	if err != nil {
