@@ -20,8 +20,6 @@ var testSuiteConfig = map[string]testConfig{
 				Endpoint: "github.com",
 			},
 		}, false},
-	"FileInexistant": {config.Prod, &config.General{}, true},
-	"FileNotJSON":    {config.Test, &config.General{}, true},
 }
 
 func recoverer(t *testing.T, name string, current testConfig) {
