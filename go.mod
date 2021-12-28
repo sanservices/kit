@@ -9,9 +9,11 @@ require (
 	github.com/ThreeDotsLabs/watermill v1.1.1
 	github.com/ThreeDotsLabs/watermill-kafka/v2 v2.2.1
 	github.com/cenkalti/backoff/v3 v3.2.2
-	github.com/go-sql-driver/mysql v1.6.0 // indirect
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hamba/avro v1.6.2
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/labstack/echo/v4 v4.6.1
 	github.com/mattn/go-sqlite3 v1.14.9
+	github.com/spf13/viper v1.10.1
+	go.uber.org/zap v1.17.0
 )
