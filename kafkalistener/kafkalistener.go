@@ -107,7 +107,7 @@ func (mb *MessageBroker) SetSchema(topic *Topic) error {
 
 	// Get the most recent schema from the registry.
 	schemaInfo, err = mb.registryClient.GetLatestSchemaInfo(subject)
-	if err == nil && schemaInfo.Version >= 0 {
+	if err == nil && (schemaInfo.Version >= 0 && schemaInfo.Version >= topic.Version){
 		topic.Schema = schemaInfo.Schema
 		return nil
 	}
