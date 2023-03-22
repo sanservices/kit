@@ -36,11 +36,6 @@ func DecodePayload(topic *Topic, payload message.Payload, v interface{}) error {
 		return errNoSchemaProvided
 	}
 
-	// try to decode golang-sent messages
-	err := avro.Unmarshal(topic.Schema, payload, v)
-	if err == nil {
-		return nil
-	}
 
 	// If the first decode failed try to remove first 5 bytes
 	// that corresponds to the kafka schema Id.
