@@ -60,6 +60,7 @@ func New(
 		OverwriteSaramaConfig: saramaConfig,
 		ConsumerGroup:         config.ConsumerGroupID,
 		NackResendSleep:       time.Second * 60,
+		ReconnectRetrySleep:   time.Second * 60,
 	}
 
 	routerConfig := message.RouterConfig{}
@@ -107,7 +108,7 @@ func (mb *MessageBroker) SetSchema(topic *Topic) error {
 
 	// Get the most recent schema from the registry.
 	schemaInfo, err = mb.registryClient.GetLatestSchemaInfo(subject)
-	if err == nil && (schemaInfo.Version >= 0 && schemaInfo.Version >= topic.Version){
+	if err == nil && (schemaInfo.Version >= 0 && schemaInfo.Version >= topic.Version) {
 		topic.Schema = schemaInfo.Schema
 		return nil
 	}
@@ -148,6 +149,8 @@ func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
 	saramaConfig.Net.TLS.Enable = true
 	saramaConfig.Version = sarama.V2_5_0_0
 	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	saramaConfig.Metadata.RefreshFrequency = time.Second * 30
+	saramaConfig.Metadata.Timeout = time.Minute * 1
 
 	// Producer tweaks
 	saramaConfig.Producer.Return.Successes = true
