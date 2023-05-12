@@ -23,7 +23,7 @@ var (
 
 type PoolConfig struct {
 	MaxLifeTime  int32 `yaml:"maxLifeTime" default:"10"`
-	MaxOpenConns int32 `yaml:"maxOpenConns" defaul:"5"`
+	MaxOpenConns int32 `yaml:"maxOpenConns" default:"5"`
 	MaxIdleConns int32 `yaml:"maxIdleConns" default:"3"`
 }
 
