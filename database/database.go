@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-redis/redis/v8"
 	_ "github.com/go-sql-driver/mysql" // mysql driver
@@ -20,14 +21,21 @@ var (
 	ErrInvalidDBUser = errors.New("database user is missing")
 )
 
+type PoolConfig struct {
+	MaxLifeTime  int32 `yaml:"maxLifeTime" default:"10"`
+	MaxOpenConns int32 `yaml:"maxOpenConns" defaul:"5"`
+	MaxIdleConns int32 `yaml:"maxIdleConns" default:"3"`
+}
+
 // DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string `yaml:"engine"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Name     string `yaml:"name"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	Engine   string     `yaml:"engine"`
+	Host     string     `yaml:"host"`
+	Port     int        `yaml:"port"`
+	Name     string     `yaml:"name"`
+	User     string     `yaml:"user"`
+	Password string     `yaml:"password"`
+	Pool     PoolConfig `yaml:"pool"`
 }
 
 type SentielConfig struct {
@@ -68,6 +76,9 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	if err != nil {
 		return nil, err
 	}
+	db.SetConnMaxIdleTime(time.Duration(time.Duration(dbConfig.Pool.MaxLifeTime).Seconds()))
+	db.SetMaxOpenConns(int(dbConfig.Pool.MaxOpenConns))
+	db.SetMaxIdleConns(int(dbConfig.Pool.MaxIdleConns))
 
 	log.Println("Connected to database")
 	return db, nil
