@@ -22,9 +22,9 @@ var (
 )
 
 type PoolConfig struct {
-	MaxLifeTime  int32 `yaml:"maxLifeTime,default=10" default:"10"`
-	MaxOpenConns int32 `yaml:"maxOpenConns,default=5" default:"5"`
-	MaxIdleConns int32 `yaml:"maxIdleConns,default=3" default:"3"`
+	MaxLifeTime  int32 `yaml:"maxLifeTime" default:"10"`
+	MaxOpenConns int32 `yaml:"maxOpenConns" default:"5"`
+	MaxIdleConns int32 `yaml:"maxIdleConns" default:"3"`
 }
 
 // DatabaseConfig is the configuration for a sql database.
