@@ -21,21 +21,14 @@ var (
 	ErrInvalidDBUser = errors.New("database user is missing")
 )
 
-type PoolConfig struct {
-	MaxLifeTime  int32 `yaml:"maxLifeTime" default:"10"`
-	MaxOpenConns int32 `yaml:"maxOpenConns" defaul:"5"`
-	MaxIdleConns int32 `yaml:"maxIdleConns" default:"3"`
-}
-
 // DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string     `yaml:"engine"`
-	Host     string     `yaml:"host"`
-	Port     int        `yaml:"port"`
-	Name     string     `yaml:"name"`
-	User     string     `yaml:"user"`
-	Password string     `yaml:"password"`
-	Pool     PoolConfig `yaml:"pool"`
+	Engine   string `yaml:"engine"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
 }
 
 type SentielConfig struct {
@@ -76,9 +69,9 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	if err != nil {
 		return nil, err
 	}
-	db.SetConnMaxIdleTime(time.Duration(time.Duration(dbConfig.Pool.MaxLifeTime).Seconds()))
-	db.SetMaxOpenConns(int(dbConfig.Pool.MaxOpenConns))
-	db.SetMaxIdleConns(int(dbConfig.Pool.MaxIdleConns))
+	db.SetConnMaxIdleTime(time.Duration(5 * time.Second))
+	db.SetMaxOpenConns(30)
+	db.SetMaxIdleConns(5)
 
 	log.Println("Connected to database")
 	return db, nil
