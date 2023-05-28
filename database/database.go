@@ -23,13 +23,12 @@ var (
 
 // DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string     `yaml:"engine"`
-	Host     string     `yaml:"host"`
-	Port     int        `yaml:"port"`
-	Name     string     `yaml:"name"`
-	User     string     `yaml:"user"`
-	Password string     `yaml:"password"`
-	Pool     PoolConfig `yaml:"pool"`
+	Engine   string `yaml:"engine"`
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Name     string `yaml:"name"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
 }
 
 type SentielConfig struct {
