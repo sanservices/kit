@@ -16,5 +16,6 @@ import github.com/sanservices/kit/database
 
 ### Available databse supported
 - Mysql
+- Oracle
 - Sqlite
 - Redis
