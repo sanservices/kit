@@ -11,7 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // mysql driver
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	_ "github.com/sijms/go-ora/v2"
+	go_ora "github.com/sijms/go-ora/v2"
 )
 
 var (
@@ -83,16 +83,16 @@ func CreateOracleConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx
 
 	log.Println("Connecting to database...")
 
-	conn := fmt.Sprintf(
-		"oracle://%s:%s@%s:%d/%s",
-		dbConfig.User,
-		dbConfig.Password,
+	conn := go_ora.BuildUrl(
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.Name,
+		dbConfig.User,
+		dbConfig.Password,
+		nil,
 	)
 
-	db, err := sqlx.Connect("oracle", conn)
+	db, err := sqlx.Open("oracle", conn)
 	if err != nil {
 		return nil, err
 	}
