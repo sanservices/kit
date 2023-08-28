@@ -11,6 +11,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // mysql driver
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	go_ora "github.com/sijms/go-ora/v2"
 )
 
 var (
@@ -74,6 +75,35 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	db.SetMaxIdleConns(5)
 
 	log.Println("Connected to database")
+	return db, nil
+}
+
+// CreateOracleConnection creates a connection to a oracle database
+func CreateOracleConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.DB, error) {
+
+	log.Println("Connecting to database...")
+
+	conn := go_ora.BuildUrl(
+		dbConfig.Host,
+		dbConfig.Port,
+		dbConfig.Name,
+		dbConfig.User,
+		dbConfig.Password,
+		nil,
+	)
+
+	db, err := sqlx.Open("oracle", conn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.PingContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Println("Connected to database")
+
 	return db, nil
 }
 

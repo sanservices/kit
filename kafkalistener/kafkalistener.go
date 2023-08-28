@@ -3,6 +3,7 @@ package kafkalistener
 import (
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"errors"
 	"log"
 	"os"
@@ -119,6 +120,10 @@ func (mb *MessageBroker) SetSchema(topic *Topic) error {
 }
 
 func (mb *MessageBroker) Publish(topic *Topic, data interface{}) error {
+	var payload []byte
+	var id int
+	var err error
+
 	if !mb.enabled {
 		return ErrBrokerNotEnabled
 	}
@@ -126,13 +131,27 @@ func (mb *MessageBroker) Publish(topic *Topic, data interface{}) error {
 	if mb.publisher == nil {
 		return ErrPublishOnConsumeOnly
 	}
+	schemaIdBytes := make([]byte, 4)
+	id, _, err = mb.registryClient.IsRegistered(topic.Name+"-value", topic.Schema.String())
+	if err != nil {
+		id, _, err = mb.registryClient.CreateSchema(topic.Name+"-value", topic.Schema.String())
+		if err != nil {
+			return err
+		}
+	}
+
+	binary.BigEndian.PutUint32(schemaIdBytes, uint32(id))
 
 	messageToSend, err := avro.Marshal(topic.Schema, data)
 	if err != nil {
 		return err
 	}
 
-	msg := message.NewMessage(watermill.NewUUID(), messageToSend)
+	payload = append(payload, byte(0))
+	payload = append(payload, schemaIdBytes...) //Magic number
+	payload = append(payload, messageToSend...)
+
+	msg := message.NewMessage(watermill.NewUUID(), payload)
 	return mb.publisher.Publish(topic.Name, msg)
 }
 
