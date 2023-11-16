@@ -156,7 +156,7 @@ func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
 	saramaConfig.Producer.Return.Successes = true
 	saramaConfig.Producer.Retry.Backoff = time.Second * 30
 	saramaConfig.Producer.Retry.Max = 50 // A very high number to ensure the message is written (infinity could be better)
-	saramaConfig.Producer.RequiredAcks = sarama.WaitForLocal
+	saramaConfig.Producer.RequiredAcks = sarama.WaitForAll
 	saramaConfig.Net.MaxOpenRequests = 1
 	saramaConfig.Producer.Idempotent = true
 
