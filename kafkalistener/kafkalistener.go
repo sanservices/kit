@@ -182,6 +182,20 @@ func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
 	return saramaConfig
 }
 
+// Overwrites the amount off time the consumer waits between poll request.
+func (mb *MessageBroker) SetConsumerMaxWaitTime(waitms int) {
+	saramaConfig := mb.subscriberConfig.OverwriteSaramaConfig
+	saramaConfig.Consumer.MaxWaitTime = time.Duration(waitms) * time.Millisecond
+
+}
+
+// Overwrites the minimum amount of message bytes.
+func (mb *MessageBroker) SetConsumerMinBytes(bytes int32) {
+	saramaConfig := mb.subscriberConfig.OverwriteSaramaConfig
+	saramaConfig.Consumer.Fetch.Min = bytes
+
+}
+
 func configurePublisher(
 	config *KafkaConfig,
 	saramaConfig *sarama.Config,
