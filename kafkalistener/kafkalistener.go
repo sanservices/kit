@@ -136,7 +136,7 @@ func (mb *MessageBroker) Publish(topic *Topic, data interface{}) error {
 	schemaIdBytes := make([]byte, 4)
 
 	compactSchema, err := compactSchema(topic.RawSchema)
-	if err == nil {
+	if err != nil {
 		return err
 	}
 
