@@ -1,9 +1,11 @@
 package kafkalistener
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"log"
 	"os"
@@ -132,9 +134,15 @@ func (mb *MessageBroker) Publish(topic *Topic, data interface{}) error {
 		return ErrPublishOnConsumeOnly
 	}
 	schemaIdBytes := make([]byte, 4)
-	id, _, err = mb.registryClient.IsRegistered(topic.Name+"-value", topic.Schema.String())
+
+	compactSchema, err := compactSchema(topic.RawSchema)
 	if err != nil {
-		id, _, err = mb.registryClient.CreateSchema(topic.Name+"-value", topic.Schema.String())
+		return err
+	}
+
+	id, _, err = mb.registryClient.IsRegistered(topic.Name+"-value", compactSchema)
+	if err != nil {
+		id, _, err = mb.registryClient.CreateSchema(topic.Name+"-value", compactSchema)
 		if err != nil {
 			return err
 		}
@@ -212,4 +220,16 @@ func configurePublisher(
 	}
 
 	return kafka.NewPublisher(publisherConfig, logger)
+}
+
+func compactSchema(schema string) (string, error) {
+	var err error
+	var str string
+	cmpSchema := &bytes.Buffer{}
+	err = json.Compact(cmpSchema, []byte(schema))
+	if err != nil {
+		return "", err
+	}
+	str = cmpSchema.String()
+	return str, nil
 }
