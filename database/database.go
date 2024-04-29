@@ -32,6 +32,12 @@ type DatabaseConfig struct {
 	Password string `yaml:"password"`
 }
 
+type ConnConfig struct {
+	ConnMaxIdleTime int
+	MaxOpenConns    int
+	MaxIdleConns    int
+}
+
 type SentielConfig struct {
 	Enabled    bool     `yaml:"enabled"`
 	Addresses  []string `yaml:"addresses"`
@@ -48,10 +54,11 @@ type RedisConfig struct {
 }
 
 // CreateMySqlConnection creates a connection to a mysql database
-func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.DB, error) {
+func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig, dbConnConfig *ConnConfig) (*sqlx.DB, error) {
 	var connectionString string
 	var db *sqlx.DB
 	var err error
+	var cnnConfig ConnConfig
 
 	if dbConfig.User == "" {
 		return nil, ErrInvalidDBUser
@@ -70,9 +77,18 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	if err != nil {
 		return nil, err
 	}
-	db.SetConnMaxIdleTime(time.Duration(5 * time.Second))
-	db.SetMaxOpenConns(30)
-	db.SetMaxIdleConns(5)
+
+	if dbConnConfig != nil {
+		cnnConfig = *dbConnConfig
+	} else {
+		cnnConfig.ConnMaxIdleTime = 5
+		cnnConfig.MaxOpenConns = 30
+		cnnConfig.MaxIdleConns = 5
+	}
+
+	db.SetConnMaxIdleTime(time.Duration(time.Duration(cnnConfig.ConnMaxIdleTime) * time.Second))
+	db.SetMaxOpenConns(cnnConfig.MaxOpenConns)
+	db.SetMaxIdleConns(cnnConfig.MaxIdleConns)
 
 	log.Println("Connected to database")
 	return db, nil
