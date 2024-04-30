@@ -48,11 +48,10 @@ type RedisConfig struct {
 }
 
 // CreateMySqlConnection creates a connection to a mysql database
-func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.DB, error) {
+func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig, connMaxIdleTime *int, maxOpenConns *int, maxIdleConns *int) (*sqlx.DB, error) {
 	var connectionString string
 	var db *sqlx.DB
 	var err error
-
 	if dbConfig.User == "" {
 		return nil, ErrInvalidDBUser
 	}
@@ -70,9 +69,23 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	if err != nil {
 		return nil, err
 	}
-	db.SetConnMaxIdleTime(time.Duration(5 * time.Second))
-	db.SetMaxOpenConns(30)
-	db.SetMaxIdleConns(5)
+
+	if connMaxIdleTime == nil {
+		defaultValue := 5
+		connMaxIdleTime = &defaultValue
+	}
+	if maxOpenConns == nil {
+		defaultValue := 30
+		maxOpenConns = &defaultValue
+	}
+	if maxIdleConns == nil {
+		defaultValue := 5
+		maxIdleConns = &defaultValue
+	}
+
+	db.SetConnMaxIdleTime(time.Duration(time.Duration(*connMaxIdleTime) * time.Second))
+	db.SetMaxOpenConns(*maxOpenConns)
+	db.SetMaxIdleConns(*maxIdleConns)
 
 	log.Println("Connected to database")
 	return db, nil
