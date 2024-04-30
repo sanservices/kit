@@ -24,12 +24,15 @@ var (
 
 // DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string `yaml:"engine"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Name     string `yaml:"name"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	Engine          string `yaml:"engine"`
+	Host            string `yaml:"host"`
+	Port            int    `yaml:"port"`
+	Name            string `yaml:"name"`
+	User            string `yaml:"user"`
+	Password        string `yaml:"password"`
+	ConnMaxIdleTime *int   `yaml:"connMaxIdleTime"`
+	MaxOpenConns    *int   `yaml:"maxOpenConns"`
+	MaxIdleConns    *int   `yaml:"maxIdleConns"`
 }
 
 type SentielConfig struct {
@@ -52,7 +55,6 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	var connectionString string
 	var db *sqlx.DB
 	var err error
-
 	if dbConfig.User == "" {
 		return nil, ErrInvalidDBUser
 	}
@@ -70,9 +72,23 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.
 	if err != nil {
 		return nil, err
 	}
-	db.SetConnMaxIdleTime(time.Duration(5 * time.Second))
-	db.SetMaxOpenConns(30)
-	db.SetMaxIdleConns(5)
+
+	if dbConfig.ConnMaxIdleTime == nil {
+		defaultValue := 5
+		dbConfig.ConnMaxIdleTime = &defaultValue
+	}
+	if dbConfig.MaxOpenConns == nil {
+		defaultValue := 30
+		dbConfig.MaxOpenConns = &defaultValue
+	}
+	if dbConfig.MaxIdleConns == nil {
+		defaultValue := 5
+		dbConfig.MaxIdleConns = &defaultValue
+	}
+
+	db.SetConnMaxIdleTime(time.Duration(time.Duration(*dbConfig.ConnMaxIdleTime) * time.Second))
+	db.SetMaxOpenConns(*dbConfig.MaxOpenConns)
+	db.SetMaxIdleConns(*dbConfig.MaxIdleConns)
 
 	log.Println("Connected to database")
 	return db, nil
