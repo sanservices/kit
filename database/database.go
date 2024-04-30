@@ -24,12 +24,15 @@ var (
 
 // DatabaseConfig is the configuration for a sql database.
 type DatabaseConfig struct {
-	Engine   string `yaml:"engine"`
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Name     string `yaml:"name"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	Engine          string `yaml:"engine"`
+	Host            string `yaml:"host"`
+	Port            int    `yaml:"port"`
+	Name            string `yaml:"name"`
+	User            string `yaml:"user"`
+	Password        string `yaml:"password"`
+	connMaxIdleTime *int   `yaml:"connMaxIdleTime"`
+	maxOpenConns    *int   `yaml:"maxOpenConns"`
+	maxIdleConns    *int   `yaml:"maxIdleConns"`
 }
 
 type SentielConfig struct {
@@ -48,7 +51,7 @@ type RedisConfig struct {
 }
 
 // CreateMySqlConnection creates a connection to a mysql database
-func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig, connMaxIdleTime *int, maxOpenConns *int, maxIdleConns *int) (*sqlx.DB, error) {
+func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig) (*sqlx.DB, error) {
 	var connectionString string
 	var db *sqlx.DB
 	var err error
@@ -70,22 +73,22 @@ func CreateMySqlConnection(ctx context.Context, dbConfig DatabaseConfig, connMax
 		return nil, err
 	}
 
-	if connMaxIdleTime == nil {
+	if dbConfig.connMaxIdleTime == nil {
 		defaultValue := 5
-		connMaxIdleTime = &defaultValue
+		dbConfig.connMaxIdleTime = &defaultValue
 	}
-	if maxOpenConns == nil {
+	if dbConfig.maxOpenConns == nil {
 		defaultValue := 30
-		maxOpenConns = &defaultValue
+		dbConfig.maxOpenConns = &defaultValue
 	}
-	if maxIdleConns == nil {
+	if dbConfig.maxIdleConns == nil {
 		defaultValue := 5
-		maxIdleConns = &defaultValue
+		dbConfig.maxIdleConns = &defaultValue
 	}
 
-	db.SetConnMaxIdleTime(time.Duration(time.Duration(*connMaxIdleTime) * time.Second))
-	db.SetMaxOpenConns(*maxOpenConns)
-	db.SetMaxIdleConns(*maxIdleConns)
+	db.SetConnMaxIdleTime(time.Duration(time.Duration(*dbConfig.connMaxIdleTime) * time.Second))
+	db.SetMaxOpenConns(*dbConfig.maxOpenConns)
+	db.SetMaxIdleConns(*dbConfig.maxIdleConns)
 
 	log.Println("Connected to database")
 	return db, nil
