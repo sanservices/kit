@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/ThreeDotsLabs/watermill"
-	"github.com/ThreeDotsLabs/watermill-kafka/v2/pkg/kafka"
+	"github.com/ThreeDotsLabs/watermill-kafka/v3/pkg/kafka"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/hamba/avro"
 	"github.com/hamba/avro/registry"
@@ -174,7 +174,7 @@ func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
 
 	saramaConfig.Net.TLS.Config = tlsConfig
 	saramaConfig.Net.TLS.Enable = true
-	saramaConfig.Version = sarama.V3_0_0_0
+	saramaConfig.Version = sarama.V4_1_0_0
 	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	saramaConfig.Metadata.RefreshFrequency = time.Second * 30
 	saramaConfig.Metadata.Timeout = time.Minute * 1
