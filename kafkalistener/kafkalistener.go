@@ -187,6 +187,13 @@ func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
 	saramaConfig.Net.MaxOpenRequests = 1
 	saramaConfig.Producer.Idempotent = true
 
+	// Fix 1: cap per-partition consumer channel buffer (default 256) to limit in-process message accumulation
+	saramaConfig.ChannelBufferSize = 64
+
+	// Fix 4: bound fetch sizes to prevent a single broker response from consuming hundreds of MB
+	saramaConfig.Consumer.Fetch.Default = 1 * 1024 * 1024 // 1 MB per fetch request
+	saramaConfig.Consumer.Fetch.Max = 10 * 1024 * 1024    // 10 MB hard cap per fetch request
+
 	return saramaConfig
 }
 
@@ -201,7 +208,21 @@ func (mb *MessageBroker) SetConsumerMaxWaitTime(waitms int) {
 func (mb *MessageBroker) SetConsumerMinBytes(bytes int32) {
 	saramaConfig := mb.subscriberConfig.OverwriteSaramaConfig
 	saramaConfig.Consumer.Fetch.Min = bytes
+}
 
+// SetChannelBufferSize overrides the per-partition Sarama channel buffer (default 64).
+func (mb *MessageBroker) SetChannelBufferSize(size int) {
+	mb.subscriberConfig.OverwriteSaramaConfig.ChannelBufferSize = size
+}
+
+// SetConsumerFetchDefault overrides the default fetch request size in bytes.
+func (mb *MessageBroker) SetConsumerFetchDefault(bytes int32) {
+	mb.subscriberConfig.OverwriteSaramaConfig.Consumer.Fetch.Default = bytes
+}
+
+// SetConsumerFetchMax overrides the maximum fetch request size in bytes.
+func (mb *MessageBroker) SetConsumerFetchMax(bytes int32) {
+	mb.subscriberConfig.OverwriteSaramaConfig.Consumer.Fetch.Max = bytes
 }
 
 func configurePublisher(
