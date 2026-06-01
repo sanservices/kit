@@ -2,30 +2,37 @@ package kafkaqueue
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 )
 
-// MemoryQueue provides an unbounded in-memory queue with buffering.
+// ErrQueueFull is returned by Push when the queue has reached its maximum size.
+var ErrQueueFull = errors.New("queue is full")
+
+// MemoryQueue provides a bounded in-memory queue with buffering.
 type MemoryQueue struct {
-	in     chan interface{}
-	out    chan interface{}
-	buffer []interface{}
-	mu     sync.RWMutex
-	closed bool
+	in      chan interface{}
+	out     chan interface{}
+	buffer  []interface{}
+	mu      sync.RWMutex
+	closed  bool
+	maxSize int
 }
 
-// NewMemoryQueue creates a new in-memory queue with initial capacity of 1000.
-func NewMemoryQueue() *MemoryQueue {
-	const initCapacity = 1000
+// NewMemoryQueue creates a new in-memory queue capped at maxSize items.
+// maxSize <= 0 means unbounded (not recommended in production).
+func NewMemoryQueue(maxSize int) *MemoryQueue {
+	const initCapacity = 256
 
 	in := make(chan interface{}, initCapacity)
 	out := make(chan interface{}, initCapacity)
 
 	mq := &MemoryQueue{
-		in:     in,
-		out:    out,
-		buffer: make([]interface{}, 0, initCapacity),
+		in:      in,
+		out:     out,
+		buffer:  make([]interface{}, 0, initCapacity),
+		maxSize: maxSize,
 	}
 
 	go mq.runBuffer(initCapacity)
@@ -92,7 +99,7 @@ loop:
 	mq.mu.Unlock()
 }
 
-// Push adds a message to the memory queue.
+// Push adds a message to the memory queue. Returns ErrQueueFull when at capacity.
 func (mq *MemoryQueue) Push(_ context.Context, q Queue) error {
 	mq.mu.RLock()
 	if mq.closed {
@@ -100,6 +107,10 @@ func (mq *MemoryQueue) Push(_ context.Context, q Queue) error {
 		return nil
 	}
 	mq.mu.RUnlock()
+
+	if mq.maxSize > 0 && mq.Len() >= mq.maxSize {
+		return ErrQueueFull
+	}
 
 	mq.in <- q
 	return nil
@@ -133,11 +144,11 @@ func (mq *MemoryQueue) TryPop() (*Queue, bool) {
 	}
 }
 
-// Len returns the approximate length of the queue.
+// Len returns the approximate total number of items across all internal buffers.
 func (mq *MemoryQueue) Len() int {
 	mq.mu.RLock()
 	defer mq.mu.RUnlock()
-	return len(mq.buffer) + len(mq.out)
+	return len(mq.buffer) + len(mq.out) + len(mq.in)
 }
 
 // Close closes the memory queue.

@@ -11,20 +11,23 @@ import (
 // HybridQueue provides a queue that uses Redis as primary storage
 // and falls back to in-memory queue when Redis is unavailable.
 type HybridQueue struct {
-	redisQueue  *RedisQueue
-	memoryQueue *MemoryQueue
-	useMemory   atomic.Bool
-	mu          sync.RWMutex
+	redisQueue    *RedisQueue
+	memoryQueue   *MemoryQueue
+	useMemory     atomic.Bool
+	mu            sync.RWMutex
+	maxMemorySize int
 
 	healthCheckInterval time.Duration
 	stopHealthCheck     chan struct{}
 }
 
 // NewHybridQueue creates a new hybrid queue with Redis as primary and memory as fallback.
-func NewHybridQueue(redisQueue *RedisQueue) *HybridQueue {
+// maxMemorySize caps the in-memory fallback queue; use 0 for unbounded (not recommended).
+func NewHybridQueue(redisQueue *RedisQueue, maxMemorySize int) *HybridQueue {
 	hq := &HybridQueue{
 		redisQueue:          redisQueue,
-		memoryQueue:         NewMemoryQueue(),
+		memoryQueue:         NewMemoryQueue(maxMemorySize),
+		maxMemorySize:       maxMemorySize,
 		healthCheckInterval: 10 * time.Second,
 		stopHealthCheck:     make(chan struct{}),
 	}
