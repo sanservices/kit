@@ -42,7 +42,7 @@ func New(
 		return nil, err
 	}
 
-	saramaConfig := setSaramaConfig(tlsConfig)
+	saramaConfig := setSaramaConfig(config, tlsConfig)
 	watermillLogger := watermill.NewStdLoggerWithOut(os.Stdout, debug, debug)
 
 	publisher, err = configurePublisher(config, saramaConfig, watermillLogger)
@@ -66,7 +66,7 @@ func New(
 		ReconnectRetrySleep:   time.Second * 60,
 	}
 
-	routerConfig := message.RouterConfig{}
+	routerConfig := message.RouterConfig{CloseTimeout: 20 * time.Second}
 	router, err := message.NewRouter(routerConfig, watermillLogger)
 	if err != nil {
 		log.Println("Error creating router: ", err)
@@ -169,15 +169,31 @@ func GetRegistryClient(tlsConfig *tls.Config, schemaReg string) (*registry.Clien
 	return registry.NewClient(schemaReg, registry.WithHTTPClient(httpsClient))
 }
 
-func setSaramaConfig(tlsConfig *tls.Config) *sarama.Config {
+func setSaramaConfig(config *KafkaConfig, tlsConfig *tls.Config) *sarama.Config {
 	saramaConfig := kafka.DefaultSaramaSubscriberConfig()
 
 	saramaConfig.Net.TLS.Config = tlsConfig
 	saramaConfig.Net.TLS.Enable = true
 	saramaConfig.Version = sarama.V4_1_0_0
-	saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	saramaConfig.Metadata.RefreshFrequency = time.Second * 30
 	saramaConfig.Metadata.Timeout = time.Minute * 1
+
+	if config.FromOldest {
+		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
+	} else {
+		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
+	}
+
+	if config.GroupInstanceID != "" {
+		saramaConfig.Consumer.Group.InstanceId = config.GroupInstanceID
+	}
+
+	sessionTimeout := config.SessionTimeout
+	if sessionTimeout == 0 {
+		sessionTimeout = 45 * time.Second
+	}
+	saramaConfig.Consumer.Group.Session.Timeout = sessionTimeout
+	saramaConfig.Consumer.Group.Heartbeat.Interval = sessionTimeout / 3
 
 	// Producer tweaks
 	saramaConfig.Producer.Return.Successes = true
