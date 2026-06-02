@@ -184,15 +184,6 @@ func setSaramaConfig(config *KafkaConfig, tlsConfig *tls.Config) *sarama.Config 
 		saramaConfig.Consumer.Offsets.Initial = sarama.OffsetNewest
 	}
 
-	switch {
-	case config.GroupInstanceID != "":
-		saramaConfig.Consumer.Group.InstanceId = config.GroupInstanceID
-	default:
-		if hostname, err := os.Hostname(); err == nil {
-			saramaConfig.Consumer.Group.InstanceId = hostname
-		}
-	}
-
 	sessionTimeout := config.SessionTimeout
 	if sessionTimeout == 0 {
 		sessionTimeout = 45 * time.Second
