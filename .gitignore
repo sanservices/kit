@@ -1,1 +1,38 @@
-CLAUDE.md
+# Binaries and build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace / vendor
+/vendor/
+go.work
+go.work.sum
+
+# Coverage and scan reports (make scan / make scan-cli)
+/report/
+
+# SQLite databases created by database.CreateSqliteConnection (./<name>.db)
+*.db
+
+# TLS material used by kafkalistener examples/tests
+*.pem
+*.key
+*.crt
+
+# Editor / IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Local env overrides
+.env
+.env.local
